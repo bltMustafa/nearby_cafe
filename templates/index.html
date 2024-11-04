@@ -5,11 +5,49 @@
   <title>Kafe Bulucu</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
 
+    h1 {
+      background-color: #f8f9fa;
+      padding: 20px;
+      margin: 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    #map {
+      width: 90%;
+      height: 600px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+    }
+
+    #message {
+      margin-top: 20px;
+      color: red;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      #map {
+        height: 400px;
+      }
+    }
+  </style>
 </head>
 <body>
 <h1>Nearby cafes </h1>
-<button id="locate-btn">get my location</button>
+<button id="locate-btn">Konumumu Al</button>
 <div id="map"></div>
 <div id="message"></div>
 
@@ -110,9 +148,9 @@
 
   function showError(error) {
     const messages = {
-      1: "Kullanıcı konum iznini reddetti.",
-      2: "Konum bilgisi alınamadı.",
-      3: "İstek zaman aşımına uğradı.",
+      1: "User denied location permission.",
+      2: "Location information could not be retrieved.",
+      3: "Request timed out.",
     };
     displayMessage(messages[error.code] || "Bilinmeyen bir hata oluştu.");
   }
