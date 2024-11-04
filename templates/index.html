@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kafe Bulucu</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+</head>
+<body>
+<h1>Nearby cafes </h1>
+<button id="locate-btn">get my location</button>
+<div id="map"></div>
+<div id="message"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  let map;
+  let userMarker;
+  let cafeMarkers = [];
+
+  document.getElementById("locate-btn").addEventListener("click", getLocation);
+
+  function initializeMap(lat, lon) {
+    if (!map) {
+      map = L.map("map").setView([lat, lon], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      userMarker = L.marker([lat, lon], {icon: userIcon}).addTo(map)
+        .bindPopup("You are here").openPopup();
+    } else {
+      map.setView([lat, lon], 15);
+      userMarker.setLatLng([lat, lon]);
+    }
+  }
+
+  const userIcon = L.icon({
+    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+
+  function getLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(sendPosition, showError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    } else {
+      displayMessage("Geolocation desteği bulunmuyor.");
+    }
+  }
+
+  function sendPosition(position) {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    initializeMap(lat, lon);
+
+    fetch("/get_cafes", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({latitude: lat, longitude: lon}),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.cafes) {
+          addCafesToMap(data.cafes);
+          document.getElementById("message").innerHTML = "";
+        } else {
+          displayMessage(data.message || data.error);
+          clearCafes();
+        }
+      })
+      .catch(() => {
+        displayMessage("Bir hata oluştu.");
+      });
+  }
+
+  function addCafesToMap(cafes) {
+    clearCafes();
+    cafes.forEach(cafe => {
+      const marker = L.marker([cafe.latitude, cafe.longitude], {icon: cafeIcon}).addTo(map)
+        .bindPopup(`${cafe.name} (${Math.round(cafe.distance)} m)`);
+      cafeMarkers.push(marker);
+    });
+  }
+
+  const cafeIcon = L.icon({
+    iconUrl: "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-2x-red.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+
+
+  function clearCafes() {
+    cafeMarkers.forEach(marker => map.removeLayer(marker));
+    cafeMarkers = [];
+  }
+
+  function showError(error) {
+    const messages = {
+      1: "Kullanıcı konum iznini reddetti.",
+      2: "Konum bilgisi alınamadı.",
+      3: "İstek zaman aşımına uğradı.",
+    };
+    displayMessage(messages[error.code] || "Bilinmeyen bir hata oluştu.");
+  }
+
+  function displayMessage(msg) {
+    document.getElementById("message").innerHTML = msg;
+  }
+</script>
+</body>
+</html>
